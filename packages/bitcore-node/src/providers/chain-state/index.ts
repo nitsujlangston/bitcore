@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import { CoalesceClass } from '../../decorators/Coalesce';
 import { Chain } from '../../types/ChainNetwork';
 import {
   BroadcastTransactionParams,
@@ -27,41 +27,8 @@ import {
 
 const services: ChainStateServices = {};
 
+@CoalesceClass
 class ChainStateProxy implements IChainStateProvider {
-  requestCache: any;
-  constructor() {
-    this.requestCache = {};
-  }
-
-  private coalesceRequest(params: any, method: any) {
-    const getCaller = () => {
-      const stack = (new Error()).stack;
-      if (!stack) {
-        throw new Error('Unable to determine caller');
-      }
-      return stack.split("\n")[3].trim().split(" ")[1];
-    }
-    let requestKey = getCaller() + JSON.stringify(params);
-    requestKey = crypto
-      .createHash('sha256')
-      .update(requestKey)
-      .digest('hex');
-    if (!this.requestCache[requestKey]) {
-      this.requestCache[requestKey] = method(params);
-    }
-    const cleanup = (err, result) => {
-      delete this.requestCache[requestKey];
-      if (err) {
-        return Promise.reject(err);
-      };
-      return Promise.resolve(result)
-    };
-    return this.requestCache[requestKey].then(
-      (result) => cleanup(null, result),
-      err => cleanup(err, null)
-    );
-  }
-
   get({ chain }: Chain) {
     if (services[chain] == undefined) {
       throw new Error(`Chain ${chain} doesn't have a ChainStateProvider registered`);
@@ -78,15 +45,15 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   async getBalanceForAddress(params: GetBalanceForAddressParams) {
-    return this.coalesceRequest(params, this.get(params).getBalanceForAddress);
+    return this.get(params).getBalanceForAddress(params);
   }
 
   async getBlock(params: GetBlockParams) {
-    return this.coalesceRequest(params, this.get(params).getBlock);
+    return this.get(params).getBlock(params);
   }
 
   async getBlockBeforeTime(params: GetBlockBeforeTimeParams) {
-    return this.coalesceRequest(params, this.get(params).getBlockBeforeTime);
+    return this.get(params).getBlockBeforeTime(params);
   }
 
   streamBlocks(params: StreamBlocksParams) {
@@ -110,11 +77,11 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   async createWallet(params: CreateWalletParams) {
-    return this.coalesceRequest(params, this.get(params).createWallet);
+    return this.get(params).createWallet(params);
   }
 
   async getWallet(params: GetWalletParams) {
-    return this.coalesceRequest(params, this.get(params).getWallet);
+    return this.get(params).getWallet(params);
   }
 
   streamWalletAddresses(params: StreamWalletAddressesParams) {
@@ -122,11 +89,11 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   walletCheck(params: WalletCheckParams) {
-    return this.coalesceRequest(params, this.get(params).walletCheck);
+    return this.get(params).walletCheck(params);
   }
 
   async updateWallet(params: UpdateWalletParams) {
-    return this.coalesceRequest(params, this.get(params).updateWallet);
+    return this.get(params).updateWallet(params);
   }
 
   streamWalletTransactions(params: StreamWalletTransactionsParams) {
@@ -134,15 +101,15 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   async getWalletBalance(params: GetWalletBalanceParams) {
-    return this.coalesceRequest(params, this.get(params).getWalletBalance);
+    return this.get(params).getWalletBalance(params);
   }
 
   async getWalletBalanceAtTime(params: GetWalletBalanceAtTimeParams) {
-    return this.coalesceRequest(params, this.get(params).getWalletBalanceAtTime);
+    return this.get(params).getWalletBalanceAtTime(params);
   }
 
   async getFee(params: GetEstimateSmartFeeParams) {
-    return this.coalesceRequest(params, this.get(params).getFee);
+    return this.get(params).getFee(params);
   }
 
   streamWalletUtxos(params: StreamWalletUtxosParams) {
@@ -150,7 +117,7 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   async broadcastTransaction(params: BroadcastTransactionParams) {
-    return this.coalesceRequest(params, this.get(params).broadcastTransaction);
+    return this.get(params).broadcastTransaction(params);
   }
 
   registerService(currency: string, service: IChainStateService) {
@@ -158,15 +125,15 @@ class ChainStateProxy implements IChainStateProvider {
   }
 
   async getCoinsForTx(params: { chain: string; network: string; txid: string }) {
-    return this.coalesceRequest(params, this.get(params).getCoinsForTx);
+    return this.get(params).getCoinsForTx(params);
   }
 
   async getLocalTip(params) {
-    return this.coalesceRequest(params, this.get(params).getLocalTip);
+    return this.get(params).getLocalTip(params);
   }
 
   async getLocatorHashes(params) {
-    return this.coalesceRequest(params, this.get(params).getLocatorHashes);
+    return this.get(params).getLocatorHashes(params);
   }
 
   streamMissingWalletAddresses(params) {
